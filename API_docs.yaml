@@ -505,12 +505,13 @@ components:
         strength: { type: integer, nullable: true, example: 200 }
       required: [name]
 
-    Symptom:   # kept for structure; UI shows array<object> without fields, but examples use these
+    SymptomCreate:
       type: object
       properties:
         name:      { type: string, example: "headache" }
-        duration:  { type: number, format: float, example: 0 }
-        intensity: { type: number, format: float, example: 0 }
+        duration:  { type: integer, nullable: true, example: 3 }
+        intensity: { type: integer, nullable: true, example: 7 }
+      required: [name]
 
     FormCreate:
       type: object
@@ -520,7 +521,7 @@ components:
         doctor_id:   { type: string, format: uuid, nullable: true, example: "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
         symptoms:
           type: array
-          items: { $ref: "#/components/schemas/Symptom" }   # screenshot shows array<object>
+          items: { $ref: "#/components/schemas/SymptomCreate" }
         medications:
           type: array
           nullable: true
