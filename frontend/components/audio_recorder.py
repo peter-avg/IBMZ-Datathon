@@ -2,7 +2,7 @@
 
 import streamlit as st
 from typing import Optional, Callable, Any
-from streamlit_webrtc import webrtc_streamer, WebRtcStreamerContext
+from streamlit_webrtc import webrtc_streamer, WebRtcStreamerContext, WebRtcMode
 from utils.state import update_live_session_state, add_transcript_entry
 from utils.config import config
 
@@ -46,7 +46,7 @@ class AudioRecorder:
         # Create the WebRTC streamer
         self.streamer_context = webrtc_streamer(
             key=self.key,
-            mode="sendonly",  # Only send audio, don't receive
+            mode=WebRtcMode.SENDONLY,  # Only send audio, don't receive
             audio_receiver_size=1024,
             media_stream_constraints={
                 "audio": audio_constraints,
