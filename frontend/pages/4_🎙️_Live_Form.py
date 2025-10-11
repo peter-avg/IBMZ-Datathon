@@ -8,7 +8,7 @@ from models.domain import (
     CreateSymptomRequest, CreateMedicationRequest,
     UpdateFormRequest
 )
-from services.api_client import api_client
+from services.api_client import api_client, APIError
 from services.ai_extractor import ai_extractor
 from components.audio_recorder import render_audio_section
 from utils.state import (
@@ -21,6 +21,69 @@ from utils.state import (
     get_ai_settings
 )
 from utils.config import config
+
+
+# Session state management for form data
+def get_form_symptoms(form_id: str) -> List[Symptom]:
+    """Get symptoms for a form from session state."""
+    if "form_symptoms" not in st.session_state:
+        st.session_state.form_symptoms = {}
+    return st.session_state.form_symptoms.get(form_id, [])
+
+
+def add_form_symptom(form_id: str, symptom: Symptom):
+    """Add a symptom to form data in session state."""
+    if "form_symptoms" not in st.session_state:
+        st.session_state.form_symptoms = {}
+    if form_id not in st.session_state.form_symptoms:
+        st.session_state.form_symptoms[form_id] = []
+    st.session_state.form_symptoms[form_id].append(symptom)
+
+
+def remove_form_symptom(form_id: str, symptom_id: str):
+    """Remove a symptom from form data in session state."""
+    if "form_symptoms" not in st.session_state:
+        return
+    if form_id in st.session_state.form_symptoms:
+        st.session_state.form_symptoms[form_id] = [
+            s for s in st.session_state.form_symptoms[form_id] 
+            if s.id != symptom_id
+        ]
+
+
+def get_form_medications(form_id: str) -> List[Medication]:
+    """Get medications for a form from session state."""
+    if "form_medications" not in st.session_state:
+        st.session_state.form_medications = {}
+    return st.session_state.form_medications.get(form_id, [])
+
+
+def add_form_medication(form_id: str, medication: Medication):
+    """Add a medication to form data in session state."""
+    if "form_medications" not in st.session_state:
+        st.session_state.form_medications = {}
+    if form_id not in st.session_state.form_medications:
+        st.session_state.form_medications[form_id] = []
+    st.session_state.form_medications[form_id].append(medication)
+
+
+def remove_form_medication(form_id: str, medication_id: str):
+    """Remove a medication from form data in session state."""
+    if "form_medications" not in st.session_state:
+        return
+    if form_id in st.session_state.form_medications:
+        st.session_state.form_medications[form_id] = [
+            m for m in st.session_state.form_medications[form_id] 
+            if m.id != medication_id
+        ]
+
+
+def clear_form_data(form_id: str):
+    """Clear all form data from session state."""
+    if "form_symptoms" in st.session_state and form_id in st.session_state.form_symptoms:
+        del st.session_state.form_symptoms[form_id]
+    if "form_medications" in st.session_state and form_id in st.session_state.form_medications:
+        del st.session_state.form_medications[form_id]
 
 
 def render_back_button():
@@ -54,8 +117,8 @@ def render_symptoms_tab(form: Form):
     """Render the symptoms tab."""
     st.subheader("🩺 Symptoms")
     
-    # Get existing symptoms
-    symptoms = api_client.list_symptoms(form_id=form.id)
+    # Get existing symptoms from session state
+    symptoms = get_form_symptoms(form.id)
     
     # Display existing symptoms
     if symptoms:
@@ -75,11 +138,9 @@ def render_symptoms_tab(form: Form):
                 
                 with col2:
                     if st.button("🗑️", key=f"delete_symptom_{symptom.id}", help="Delete symptom"):
-                        if api_client.delete_symptom(symptom.id):
-                            st.success("Symptom deleted!")
-                            st.rerun()
-                        else:
-                            st.error("Failed to delete symptom.")
+                        remove_form_symptom(form.id, symptom.id)
+                        st.success("Symptom deleted!")
+                        st.rerun()
     else:
         st.info("No symptoms recorded yet.")
     
@@ -104,23 +165,18 @@ def render_symptoms_tab(form: Form):
         
         if st.form_submit_button("➕ Add Symptom", type="primary"):
             if name.strip():
-                try:
-                    request = CreateSymptomRequest(
-                        form_id=form.id,
-                        name=name.strip(),
-                        duration=duration.strip() if duration else None,
-                        intensity=intensity if intensity else None,
-                        recurrence=recurrence.strip() if recurrence else None
-                    )
-                    
-                    new_symptom = api_client.create_symptom(request)
-                    if new_symptom:
-                        st.success(f"Symptom '{new_symptom.name}' added successfully!")
-                        st.rerun()
-                    else:
-                        st.error("Failed to add symptom.")
-                except Exception as e:
-                    st.error(f"Error adding symptom: {str(e)}")
+                # Create symptom in session state
+                symptom = Symptom(
+                    id=str(len(symptoms) + 1),  # Simple ID generation
+                    form_id=form.id,
+                    name=name.strip(),
+                    duration=duration.strip() if duration else None,
+                    intensity=intensity if intensity else None,
+                    recurrence=recurrence.strip() if recurrence else None
+                )
+                add_form_symptom(form.id, symptom)
+                st.success(f"Symptom '{symptom.name}' added successfully!")
+                st.rerun()
             else:
                 st.error("Please enter a symptom name.")
 
@@ -129,8 +185,8 @@ def render_medications_tab(form: Form):
     """Render the medications tab."""
     st.subheader("💊 Medications")
     
-    # Get existing medications
-    medications = api_client.list_medications(form_id=form.id)
+    # Get existing medications from session state
+    medications = get_form_medications(form.id)
     
     # Display existing medications
     if medications:
@@ -150,11 +206,9 @@ def render_medications_tab(form: Form):
                 
                 with col2:
                     if st.button("🗑️", key=f"delete_medication_{medication.id}", help="Delete medication"):
-                        if api_client.delete_medication(medication.id):
-                            st.success("Medication deleted!")
-                            st.rerun()
-                        else:
-                            st.error("Failed to delete medication.")
+                        remove_form_medication(form.id, medication.id)
+                        st.success("Medication deleted!")
+                        st.rerun()
     else:
         st.info("No medications recorded yet.")
     
@@ -176,23 +230,18 @@ def render_medications_tab(form: Form):
         
         if st.form_submit_button("➕ Add Medication", type="primary"):
             if name.strip():
-                try:
-                    request = CreateMedicationRequest(
-                        form_id=form.id,
-                        name=name.strip(),
-                        strength=strength.strip() if strength else None,
-                        frequency=frequency.strip() if frequency else None,
-                        duration=duration.strip() if duration else None
-                    )
-                    
-                    new_medication = api_client.create_medication(request)
-                    if new_medication:
-                        st.success(f"Medication '{new_medication.name}' added successfully!")
-                        st.rerun()
-                    else:
-                        st.error("Failed to add medication.")
-                except Exception as e:
-                    st.error(f"Error adding medication: {str(e)}")
+                # Create medication in session state
+                medication = Medication(
+                    id=str(len(medications) + 1),  # Simple ID generation
+                    form_id=form.id,
+                    name=name.strip(),
+                    strength=strength.strip() if strength else None,
+                    frequency=frequency.strip() if frequency else None,
+                    duration=duration.strip() if duration else None
+                )
+                add_form_medication(form.id, medication)
+                st.success(f"Medication '{medication.name}' added successfully!")
+                st.rerun()
             else:
                 st.error("Please enter a medication name.")
 
@@ -214,8 +263,8 @@ def render_summary_tab(form: Form, patient, doctor):
     
     with col2:
         st.write("**Statistics:**")
-        symptoms_count = len(api_client.list_symptoms(form_id=form.id))
-        medications_count = len(api_client.list_medications(form_id=form.id))
+        symptoms_count = len(get_form_symptoms(form.id))
+        medications_count = len(get_form_medications(form.id))
         
         st.metric("Symptoms", symptoms_count)
         st.metric("Medications", medications_count)
@@ -234,21 +283,48 @@ def render_summary_tab(form: Form, patient, doctor):
     
     with col1:
         if st.button("💾 Save Draft", type="secondary"):
-            updated_form = api_client.update_form(form.id, status=FormStatus.DRAFT)
-            if updated_form:
-                st.success("Form saved as draft!")
-                st.rerun()
-            else:
-                st.error("Failed to save form.")
+            # Update form status in session state
+            form.status = FormStatus.DRAFT
+            st.session_state.current_form = form
+            st.success("Form saved as draft!")
+            st.rerun()
     
     with col2:
-        if st.button("✅ Finalize", type="primary"):
-            updated_form = api_client.update_form(form.id, status=FormStatus.FINALIZED)
-            if updated_form:
-                st.success("Form finalized successfully!")
-                st.rerun()
-            else:
-                st.error("Failed to finalize form.")
+        if st.button("✅ Submit Form", type="primary"):
+            # Submit the complete form to backend
+            symptoms = get_form_symptoms(form.id)
+            medications = get_form_medications(form.id)
+            
+            if not symptoms and not medications:
+                st.error("Please add at least one symptom or medication before submitting.")
+                return
+            
+            try:
+                # Submit form to backend
+                submission_id = api_client.submit_form(
+                    patient_id=form.patient_id,
+                    doctor_id=form.doctor_id,
+                    symptoms=symptoms,
+                    medications=medications
+                )
+                
+                st.success(f"Form submitted successfully! Submission ID: {submission_id}")
+                
+                # Clear form data and navigate back to patient page
+                clear_form_data(form.id)
+                st.session_state.current_form = None
+                
+                # Show success message and navigate
+                st.balloons()
+                st.info("Form submitted successfully! Redirecting to patient page...")
+                st.switch_page("pages/2_👤_Patient_Page.py")
+                
+            except APIError as e:
+                st.error(f"Failed to submit form: {e.message}")
+                if config.DEBUG:
+                    st.error(f"Status Code: {e.status_code}")
+            except Exception as e:
+                st.error(f"Error submitting form: {str(e)}")
     
     with col3:
         if st.button("📄 Export", type="secondary"):
@@ -272,28 +348,32 @@ def process_ai_extraction(form: Form):
         # Add extracted symptoms
         for symptom in extraction_result.symptoms:
             try:
-                request = CreateSymptomRequest(
+                # Create symptom in session state
+                new_symptom = Symptom(
+                    id=f"ai_{len(get_form_symptoms(form.id)) + 1}",
                     form_id=form.id,
                     name=symptom.name,
                     duration=symptom.duration,
                     intensity=symptom.intensity,
                     recurrence=symptom.recurrence
                 )
-                api_client.create_symptom(request)
+                add_form_symptom(form.id, new_symptom)
             except Exception as e:
                 st.sidebar.error(f"Failed to add symptom: {str(e)}")
         
         # Add extracted medications
         for medication in extraction_result.medications:
             try:
-                request = CreateMedicationRequest(
+                # Create medication in session state
+                new_medication = Medication(
+                    id=f"ai_{len(get_form_medications(form.id)) + 1}",
                     form_id=form.id,
                     name=medication.name,
                     strength=medication.strength,
                     frequency=medication.frequency,
                     duration=medication.duration
                 )
-                api_client.create_medication(request)
+                add_form_medication(form.id, new_medication)
             except Exception as e:
                 st.sidebar.error(f"Failed to add medication: {str(e)}")
         

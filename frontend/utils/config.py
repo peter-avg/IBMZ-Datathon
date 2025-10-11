@@ -12,7 +12,7 @@ class Config:
     """Application configuration."""
     
     # Backend API configuration
-    BACKEND_API_URL: str = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+    BACKEND_API_URL: str = os.getenv("BACKEND_API_URL", "https://ibm-datathon-api-gateway.onrender.com")
     
     # Default doctor for demo
     DEFAULT_DOCTOR_ID: str = os.getenv("DEFAULT_DOCTOR_ID", "D001")
@@ -30,9 +30,13 @@ class Config:
     PATIENTS_PER_PAGE: int = int(os.getenv("PATIENTS_PER_PAGE", "12"))
     TRANSCRIPT_MAX_LINES: int = int(os.getenv("TRANSCRIPT_MAX_LINES", "50"))
     
+    # HTTP client configuration
+    HTTP_TIMEOUT: int = int(os.getenv("HTTP_TIMEOUT", "30"))
+    HTTP_RETRY_ATTEMPTS: int = int(os.getenv("HTTP_RETRY_ATTEMPTS", "3"))
+    
     # Development settings
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    MOCK_API: bool = os.getenv("MOCK_API", "true").lower() == "true"
+    MOCK_API: bool = os.getenv("MOCK_API", "false").lower() == "true"
 
 
 # Global config instance

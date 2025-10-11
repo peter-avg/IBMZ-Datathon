@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import datetime
 from typing import Optional
 from models.domain import Patient, Form, FormStatus
-from services.api_client import api_client
+from services.api_client import api_client, APIError
 from utils.state import (
     initialize_session_state,
     get_current_patient,
@@ -73,53 +73,43 @@ def render_personal_data_section(patient: Patient):
             
             st.write("**Patient ID:**")
             st.info(patient.id)
+        
+        # Additional fields that might be available from backend
+        if hasattr(patient, 'phone') and patient.phone:
+            st.write("**Phone:**")
+            st.info(patient.phone)
+        
+        if hasattr(patient, 'sex_at_birth') and patient.sex_at_birth:
+            st.write("**Sex at Birth:**")
+            st.info(patient.sex_at_birth)
 
 
 def render_form_archive_section(patient: Patient):
     """Render the form archive section."""
     st.subheader("📁 Form Archive")
     
-    # Get forms for this patient
-    forms = api_client.list_forms(patient_id=patient.id)
+    # Backend doesn't support form retrieval, so we show a message
+    st.info("""
+    **Form Archive Information:**
     
-    if not forms:
-        st.info("No forms found for this patient. Create a new form to get started.")
-        return
+    The backend API doesn't support retrieving forms after submission. 
+    Forms are submitted as complete records and cannot be edited or viewed later.
     
-    # Display forms in a list
-    for form in forms:
-        with st.container():
-            col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
-            
-            with col1:
-                # Form ID and creation date
-                created_date = form.created_at.strftime("%B %d, %Y at %I:%M %p") if form.created_at else "Unknown"
-                st.write(f"**Form #{form.id[:8]}...**")
-                st.caption(f"Created: {created_date}")
-            
-            with col2:
-                # Status badge
-                status_color = "🟢" if form.status == FormStatus.FINALIZED else "🟡"
-                status_text = "Finalized" if form.status == FormStatus.FINALIZED else "Draft"
-                st.write(f"{status_color} **{status_text}**")
-            
-            with col3:
-                # Open button
-                if st.button("📝 Open", key=f"open_form_{form.id}"):
-                    # Set current form and navigate to live form page
-                    st.session_state.current_form = form
-                    st.switch_page("pages/4_🎙️_Live_Form.py")
-            
-            with col4:
-                # Delete button
-                if st.button("🗑️", key=f"delete_form_{form.id}", help="Delete form"):
-                    if api_client.delete_form(form.id):
-                        st.success("Form deleted successfully!")
-                        st.rerun()
-                    else:
-                        st.error("Failed to delete form.")
-            
-            st.markdown("---")
+    To create a new consultation form for this patient, use the "New Form" button below.
+    """)
+    
+    # Show a note about form workflow
+    with st.expander("ℹ️ About Form Submission", expanded=False):
+        st.markdown("""
+        **How forms work with the backend:**
+        
+        1. **Create Form**: Start a new form session
+        2. **Live Session**: Record consultation and add symptoms/medications
+        3. **Submit**: Finalize and submit the complete form to the backend
+        4. **Archive**: Forms are stored in the backend but cannot be retrieved
+        
+        This design ensures data integrity and prevents modification of submitted medical records.
+        """)
 
 
 def render_floating_action_button(patient: Patient):

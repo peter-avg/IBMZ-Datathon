@@ -3,7 +3,7 @@
 import streamlit as st
 from datetime import datetime
 from models.domain import CreateFormRequest, FormStatus
-from services.api_client import api_client
+from services.api_client import api_client, APIError
 from utils.state import (
     initialize_session_state,
     get_current_patient,
@@ -104,18 +104,14 @@ def render_initial_form_section(form):
             clear_button = st.form_submit_button("🗑️ Clear")
         
         if save_button:
-            # Update form with notes
-            updated_form = api_client.update_form(
-                form.id,
-                free_text_notes=notes
-            )
-            if updated_form:
-                set_current_form(updated_form)
-                st.success("Notes saved successfully!")
-            else:
-                st.error("Failed to save notes.")
+            # Update form in session state (not backend)
+            form.free_text_notes = notes
+            set_current_form(form)
+            st.success("Notes saved successfully!")
         
         if clear_button:
+            form.free_text_notes = ""
+            set_current_form(form)
             st.rerun()
 
 
@@ -137,19 +133,13 @@ def render_start_session_button(form):
 
 
 def create_new_form(patient, doctor):
-    """Create a new form for the patient."""
-    try:
-        request = CreateFormRequest(
-            patient_id=patient.id,
-            doctor_id=doctor.id
-        )
-        
-        form = api_client.create_form(request)
-        return form
-    
-    except Exception as e:
-        st.error(f"Failed to create form: {str(e)}")
-        return None
+    """Create a new form for the patient (in session state only)."""
+    # Create form in session state (not backend)
+    form = api_client.create_form(CreateFormRequest(
+        patient_id=patient.id,
+        doctor_id=doctor.id
+    ))
+    return form
 
 
 def main():
