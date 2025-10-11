@@ -1,0 +1,24 @@
+[project]
+name = "ibm-z"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "black>=25.9.0",
+    "fastapi==0.115.12",
+    "flake8>=7.3.0",
+    "instructor==1.7.9",
+    "numpy==2.2.5",
+    "openai==1.76.2",
+    "pandas==2.2.3",
+    "pgvector==0.4.1",
+    "protobuf==6.30.2",
+    "pydantic==2.11.4",
+    "pyright>=1.1.406",
+    "python-dotenv==1.1.0",
+    "requests==2.32.3",
+    "sentence-transformers==4.1.0",
+    "sqlalchemy==2.0.34",
+    "websockets==15.0.1",
+]
