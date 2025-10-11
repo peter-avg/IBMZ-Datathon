@@ -1,9 +1,8 @@
 """Audio recorder component using streamlit-webrtc for browser-based audio capture."""
 
 import streamlit as st
-import asyncio
 from typing import Optional, Callable, Any
-from streamlit_webrtc import webrtc_streamer, WebRTCStreamerContext
+from streamlit_webrtc import webrtc_streamer, WebRtcStreamerContext
 from utils.state import update_live_session_state, add_transcript_entry
 from utils.config import config
 
@@ -26,14 +25,14 @@ class AudioRecorder:
         self.key = key
         self.on_audio_frame = on_audio_frame
         self.on_transcript_update = on_transcript_update
-        self.streamer_context: Optional[WebRTCStreamerContext] = None
+        self.streamer_context: Optional[WebRtcStreamerContext] = None
     
-    def render(self) -> WebRTCStreamerContext:
+    def render(self) -> WebRtcStreamerContext:
         """
         Render the audio recorder component.
         
         Returns:
-            WebRTCStreamerContext for controlling the stream
+            WebRtcStreamerContext for controlling the stream
         """
         # Configure audio constraints
         audio_constraints = {
@@ -118,7 +117,7 @@ def render_audio_controls(key: str = "audio_controls") -> AudioRecorder:
     recorder = AudioRecorder(key=f"{key}_recorder")
     
     # Render the WebRTC component
-    streamer_context = recorder.render()
+    recorder.render()
     
     # Control buttons
     col1, col2, col3, col4 = st.columns(4)
