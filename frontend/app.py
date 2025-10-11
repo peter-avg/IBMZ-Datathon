@@ -63,7 +63,6 @@ def main():
         st.write("**Current Configuration:**")
         st.write(f"- Backend API URL: `{config.BACKEND_API_URL}`")
         st.write(f"- Default Doctor: `{config.DEFAULT_DOCTOR_NAME}`")
-        st.write(f"- ASR Model: `{config.ASR_MODEL}`")
         st.write(f"- AI Autofill: `{'Enabled' if config.AI_AUTOFILL_ENABLED else 'Disabled'}`")
         st.write(f"- Mock API: `{'Enabled' if config.MOCK_API else 'Disabled'}`")
         

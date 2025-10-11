@@ -67,30 +67,15 @@ def render_decision_support_section():
     # AI settings
     ai_settings = get_ai_settings()
     
-    col1, col2 = st.columns(2)
+    # AI Autofill toggle
+    autofill_enabled = st.toggle(
+        "Enable AI Autofill from microphone",
+        value=ai_settings.get("autofill_enabled", True),
+        help="Automatically fill form fields based on conversation"
+    )
     
-    with col1:
-        # AI Autofill toggle
-        autofill_enabled = st.toggle(
-            "Enable AI Autofill from microphone",
-            value=ai_settings.get("autofill_enabled", True),
-            help="Automatically fill form fields based on conversation"
-        )
-        
-        if autofill_enabled != ai_settings.get("autofill_enabled"):
-            update_ai_settings(autofill_enabled=autofill_enabled)
-    
-    with col2:
-        # ASR Model selection
-        asr_model = st.selectbox(
-            "ASR Model",
-            options=["whisper-small", "whisper-medium", "whisper-large"],
-            index=0,
-            help="Automatic Speech Recognition model to use"
-        )
-        
-        if asr_model != ai_settings.get("asr_model"):
-            update_ai_settings(asr_model=asr_model)
+    if autofill_enabled != ai_settings.get("autofill_enabled"):
+        update_ai_settings(autofill_enabled=autofill_enabled)
     
     st.markdown("---")
 
