@@ -1,13 +1,13 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, Depends, HTTPException, Response, status
 # import openai
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from pydantic import BaseModel
 from typing import List
-from uuid import UUID
+from uuid import uuid4, UUID
 
 # --- Configuration ---
 load_dotenv() # <-- ADD THIS to load the .env file
@@ -27,7 +27,13 @@ if not DATABASE_URL_RAW:
 app = FastAPI()
 
 # --- Pydantic Schemas ---
-class Item(BaseModel):
+
+# Pydantic model for data coming FROM the frontend
+class DoctorCreate(BaseModel):
+    full_name: str
+
+# Pydantic model for data sent back TO the frontend
+class Doctor(BaseModel):
     doctor_id: UUID
     full_name: str
     class Config:
@@ -75,9 +81,59 @@ async def websocket_endpoint(websocket: WebSocket):
             break
 
 # REST API to interact with Postgres
-@app.get("/doctor/", response_model=List[Item])
-async def read_items(db: AsyncSession = Depends(get_db)):
+@app.get("/get_doctor/", response_model=List[Doctor])
+async def get_doctor(db: AsyncSession = Depends(get_db)):
     query = text("SELECT doctor_id, full_name FROM doctor")
     result = await db.execute(query)
     items = result.mappings().all()
     return items
+
+@app.post("/create_doctor/", response_model=Doctor, status_code=201)
+async def create_doctor(
+    doctor_data: DoctorCreate, # FastAPI validates the incoming data against this model
+    db: AsyncSession = Depends(get_db)
+):
+    new_doctor_id = uuid4()
+    query = text("""
+        INSERT INTO doctor (doctor_id, full_name)
+        VALUES (:doctor_id, :full_name)
+    """)
+    try:
+        await db.execute(
+            query,
+            {"doctor_id": new_doctor_id, "full_name": doctor_data.full_name}
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+    return {"doctor_id": new_doctor_id, "full_name": doctor_data.full_name}
+
+
+@app.delete("/doctor/{doctor_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_doctor(
+    doctor_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    # Define the DELETE query using a named parameter
+    query = text("DELETE FROM doctor WHERE doctor_id = :doctor_id")
+
+    try:
+        # Execute the query
+        result = await db.execute(query, {"doctor_id": doctor_id})
+        
+        # Check if any row was actually deleted
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Doctor with id {doctor_id} not found"
+            )
+        
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+    # Return a 204 response which has no body, indicating success
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
