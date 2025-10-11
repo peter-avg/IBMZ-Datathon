@@ -9,7 +9,7 @@ A Streamlit-based frontend application for AI-assisted clinical forms that helps
 - 📋 **Dynamic Forms**: Real-time form updates during consultation
 - 👥 **Patient Management**: Complete patient database and history
 - 📊 **Form Archive**: Historical form access and management
-- 🔧 **Backend Integration Ready**: Designed for easy backend connection
+- 🔧 **Backend Integration**: Fully integrated with FastAPI backend
 
 ## Project Structure
 
@@ -25,8 +25,8 @@ frontend/
 │   ├── patient_card.py            # Reusable patient card
 │   └── audio_recorder.py          # WebRTC audio component wrapper
 ├── services/
-│   ├── api_client.py              # Mock API client (backend integration point)
-│   └── ai_extractor.py            # Placeholder AI extraction logic
+│   ├── api_client.py              # HTTP API client with backend integration
+│   └── ai_extractor.py            # AI extraction logic
 ├── models/
 │   └── domain.py                  # Pydantic models for entities
 └── utils/
@@ -97,11 +97,13 @@ http://localhost:8501
 
 The application can be configured using environment variables (see `.env.example`):
 
-- `BACKEND_API_URL`: Backend API service URL (default: `http://localhost:8000`)
+- `BACKEND_API_URL`: Backend API service URL (default: `https://ibm-datathon-api-gateway.onrender.com`)
 - `DEFAULT_DOCTOR_ID` / `DEFAULT_DOCTOR_NAME`: Default doctor for demo
 - `ASR_MODEL`: Automatic Speech Recognition model (backend-controlled)
 - `AI_AUTOFILL_ENABLED`: Enable AI autofill from microphone
-- `MOCK_API`: Use mock API instead of real backend (default: `true`)
+- `MOCK_API`: Use mock API instead of real backend (default: `false`)
+- `HTTP_TIMEOUT`: HTTP request timeout in seconds (default: `30`)
+- `HTTP_RETRY_ATTEMPTS`: Number of retry attempts for failed requests (default: `3`)
 
 ## Usage Guide
 
@@ -135,99 +137,82 @@ The application can be configured using environment variables (see `.env.example
 
 ### Overview
 
-The frontend is designed to be easily integrated with a backend API. All backend communication is abstracted through the `services/api_client.py` module.
+The frontend is fully integrated with the FastAPI backend at `https://ibm-datathon-api-gateway.onrender.com`. The integration handles:
 
-### Integration Steps
+- **Patient Management**: Full CRUD operations for patients
+- **Doctor Management**: Full CRUD operations for doctors  
+- **Form Submission**: Batch submission of complete forms with symptoms and medications
+- **Error Handling**: Comprehensive error handling for network and API errors
+- **Data Transformation**: Automatic conversion between frontend and backend data models
 
-#### 1. Update API Client
+### Backend API Endpoints
 
-Replace the mock implementation in `services/api_client.py` with real HTTP calls:
-
-```python
-# Example: Replace mock methods with HTTP calls
-def create_patient(self, request: CreatePatientRequest) -> Patient:
-    response = requests.post(f"{config.BACKEND_API_URL}/patients", json=request.dict())
-    response.raise_for_status()
-    return Patient(**response.json())
-```
-
-#### 2. Configure Backend URL
-
-Update your `.env` file:
-```bash
-BACKEND_API_URL=http://your-backend-server:8000
-MOCK_API=false
-```
-
-#### 3. Audio Streaming Integration
-
-For real-time audio processing, integrate with your backend WebSocket:
-
-```python
-# In components/audio_recorder.py
-def on_audio_frame(self, audio_frame):
-    # Send audio frame to backend WebSocket
-    websocket.send(audio_frame.to_ndarray())
-```
-
-#### 4. AI Extraction Integration
-
-Replace the placeholder AI extraction in `services/ai_extractor.py`:
-
-```python
-def extract_entities(self, text: str) -> ExtractionResult:
-    # Call your backend AI service
-    response = requests.post(f"{config.BACKEND_API_URL}/ai/extract", 
-                           json={"text": text})
-    return ExtractionResult(**response.json())
-```
-
-### Required Backend Endpoints
-
-The backend should implement these REST API endpoints:
+The backend provides the following REST API endpoints:
 
 #### Patient Management
-- `GET /patients` - List patients (with optional search)
-- `POST /patients` - Create new patient
-- `GET /patients/{id}` - Get patient details
-- `PUT /patients/{id}` - Update patient
-- `DELETE /patients/{id}` - Delete patient
+- `GET /patients/` - List all patients
+- `POST /patients/` - Create new patient
+- `GET /patients/{patient_id}` - Get patient details
+- `PATCH /patients/{patient_id}` - Update patient
+- `DELETE /patients/{patient_id}` - Delete patient
 
-#### Form Management
-- `GET /forms` - List forms (with optional patient filter)
-- `POST /forms` - Create new form
-- `GET /forms/{id}` - Get form details
-- `PUT /forms/{id}` - Update form
-- `DELETE /forms/{id}` - Delete form
+#### Doctor Management
+- `GET /doctors/` - List all doctors
+- `POST /doctors/` - Create new doctor
+- `GET /doctors/{doctor_id}` - Get doctor details
+- `PATCH /doctors/{doctor_id}` - Update doctor
+- `DELETE /doctors/{doctor_id}` - Delete doctor
 
-#### Symptoms & Medications
-- `GET /symptoms` - List symptoms (with optional form filter)
-- `POST /symptoms` - Create new symptom
-- `PUT /symptoms/{id}` - Update symptom
-- `DELETE /symptoms/{id}` - Delete symptom
+#### Form Submission
+- `POST /forms/` - Submit complete form with symptoms and medications
 
-- `GET /medications` - List medications (with optional form filter)
-- `POST /medications` - Create new medication
-- `PUT /medications/{id}` - Update medication
-- `DELETE /medications/{id}` - Delete medication
+### Data Model Differences
 
-#### AI Services
-- `POST /ai/extract` - Extract entities from text
-- `WebSocket /ws/audio` - Real-time audio streaming
+The frontend and backend use different data models that are automatically converted:
 
-### Data Models
+#### Field Mappings
+- Frontend `name` ↔ Backend `full_name`
+- Frontend `id` ↔ Backend `patient_id`/`doctor_id`
+- Frontend `date_of_birth` ↔ Backend `dob`
+- Frontend `duration`/`intensity` (strings) ↔ Backend (integers)
+- Frontend `strength` (string) ↔ Backend (integer)
 
-The frontend uses Pydantic models defined in `models/domain.py`. Ensure your backend API returns data in the same format:
+#### Additional Backend Fields
+- `phone`: Patient/doctor phone number
+- `sex_at_birth`: Patient's sex at birth
+- `created_at`: Creation timestamp
 
-```python
-# Example Patient model
-{
-    "id": "string",
-    "name": "string", 
-    "email": "string (optional)",
-    "date_of_birth": "date (optional)"
-}
+#### Form Workflow
+The backend uses a **single-submission model**:
+1. Forms are created and managed in session state during consultation
+2. Symptoms and medications are added incrementally in the UI
+3. When "Submit Form" is clicked, all data is sent to the backend in one request
+4. Forms cannot be retrieved or modified after submission (ensures data integrity)
+
+### Error Handling
+
+The application includes comprehensive error handling:
+
+- **Network Errors**: Connection timeouts, DNS failures
+- **HTTP Errors**: 404 (Not Found), 422 (Validation Error), 500 (Server Error)
+- **API Errors**: Custom `APIError` exception with status codes
+- **Validation Errors**: Backend validation error display
+- **Graceful Degradation**: Fallback to mock data when backend is unavailable
+
+### Configuration
+
+Set `MOCK_API=false` in your `.env` file to use the real backend:
+
+```bash
+BACKEND_API_URL=https://ibm-datathon-api-gateway.onrender.com
+MOCK_API=false
+HTTP_TIMEOUT=30
+HTTP_RETRY_ATTEMPTS=3
 ```
+
+### Authentication
+
+The backend API does not require authentication - all endpoints are publicly accessible.
 
 ## Development
 
@@ -258,10 +243,34 @@ streamlit run frontend/app.py --server.runOnSave true
 
 ### Testing
 
-The application includes mock data for testing:
-- Default doctor: "Dr. Demo" (ID: D001)
-- Create test patients through the UI
-- All data is stored in memory (resets on restart)
+The application includes comprehensive testing capabilities:
+
+- **Mock Mode**: Set `MOCK_API=true` to use in-memory mock data for development
+- **Backend Integration**: Set `MOCK_API=false` to test with real backend API
+- **Error Scenarios**: Test network failures, validation errors, and API errors
+- **Data Validation**: Verify field type conversions and data transformations
+
+#### Testing Backend Integration
+
+1. **Start with Mock Mode**:
+   ```bash
+   export MOCK_API=true
+   streamlit run frontend/app.py
+   ```
+
+2. **Switch to Backend Mode**:
+   ```bash
+   export MOCK_API=false
+   export BACKEND_API_URL=https://ibm-datathon-api-gateway.onrender.com
+   streamlit run frontend/app.py
+   ```
+
+3. **Test Form Submission**:
+   - Create a patient
+   - Start a new form
+   - Add symptoms and medications
+   - Submit the form
+   - Verify submission success message
 
 ## Troubleshooting
 
@@ -271,6 +280,9 @@ The application includes mock data for testing:
 2. **Import errors**: Make sure all dependencies are installed (`uv sync`)
 3. **Port conflicts**: Change the port with `--server.port 8502`
 4. **Backend connection**: Check `BACKEND_API_URL` in your `.env` file
+5. **API errors**: Check network connectivity and backend service status
+6. **Form submission fails**: Ensure at least one symptom or medication is added
+7. **Data not saving**: Check if `MOCK_API` is set correctly for your use case
 
 ### Debug Mode
 

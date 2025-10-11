@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import date
 from typing import Optional
 from models.domain import CreatePatientRequest
-from services.api_client import api_client
+from services.api_client import api_client, APIError
 from components.patient_card import render_patient_grid, render_patient_list
 from utils.state import (
     initialize_session_state, 
@@ -40,7 +40,14 @@ def render_sidebar():
         set_patient_search_query(search_query)
         
         # Get filtered patients
-        patients = api_client.list_patients(search=search_query if search_query else None)
+        try:
+            patients = api_client.list_patients(search=search_query if search_query else None)
+        except APIError as e:
+            st.error(f"Failed to load patients: {e.message}")
+            patients = []
+        except Exception as e:
+            st.error(f"Error loading patients: {str(e)}")
+            patients = []
         
         # Patient list in sidebar
         st.subheader("👥 Patients")
@@ -71,7 +78,13 @@ def render_create_patient_modal():
         # Form fields
         name = st.text_input("Full Name *", placeholder="Enter patient's full name")
         email = st.text_input("Email", placeholder="Enter patient's email address")
+        phone = st.text_input("Phone", placeholder="Enter patient's phone number")
         date_of_birth = st.date_input("Date of Birth", value=None)
+        sex_at_birth = st.selectbox(
+            "Sex at Birth",
+            options=["", "Male", "Female", "Other", "Prefer not to say"],
+            index=0
+        )
         
         # Form buttons
         col1, col2 = st.columns(2)
@@ -92,7 +105,9 @@ def render_create_patient_modal():
                     request = CreatePatientRequest(
                         name=name.strip(),
                         email=email.strip() if email else None,
-                        date_of_birth=date_of_birth if date_of_birth else None
+                        phone=phone.strip() if phone else None,
+                        date_of_birth=date_of_birth if date_of_birth else None,
+                        sex_at_birth=sex_at_birth if sex_at_birth else None
                     )
                     
                     # Create patient via API
@@ -104,6 +119,10 @@ def render_create_patient_modal():
                     toggle_create_patient_modal()
                     st.rerun()
                     
+                except APIError as e:
+                    st.error(f"API Error: {e.message}")
+                    if config.DEBUG:
+                        st.error(f"Status Code: {e.status_code}")
                 except Exception as e:
                     st.error(f"Error creating patient: {str(e)}")
         
@@ -118,7 +137,14 @@ def render_main_content():
     
     # Get search query and filter patients
     search_query = get_patient_search_query()
-    patients = api_client.list_patients(search=search_query if search_query else None)
+    try:
+        patients = api_client.list_patients(search=search_query if search_query else None)
+    except APIError as e:
+        st.error(f"Failed to load patients: {e.message}")
+        patients = []
+    except Exception as e:
+        st.error(f"Error loading patients: {str(e)}")
+        patients = []
     
     # Display search results info
     if search_query:
