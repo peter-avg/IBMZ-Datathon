@@ -1,0 +1,261 @@
+# === Product: AI-assisted Clinical Forms (Streamlit demo) ===
+# Purpose: Live doctor–patient transcription feeds structured Form fields.
+
+# -------------------------
+# Domain model (from board)
+# -------------------------
+entities:
+  Doctor:
+    table: doctors
+    fields:
+      id: {type: string, pk: true, required: true}
+      name: {type: string, required: true}
+
+  Patient:
+    table: patients
+    fields:
+      id: {type: string, pk: true, required: true}
+      name: {type: string, required: true}
+      email: {type: string}
+      date_of_birth: {type: date}
+
+  Form:
+    # one clinical encounter (note) linking doctor+patient
+    table: forms
+    fields:
+      id: {type: string, pk: true, required: true}
+      patient_id: {type: string, fk: patients.id, required: true}
+      doctor_id: {type: string, fk: doctors.id, required: true}
+      created_at: {type: datetime}
+      status: {type: enum, values: [draft, finalized], default: draft}
+      free_text_notes: {type: text}
+
+  Symptom:
+    # stored per Form (simple demo; normalize later if needed)
+    table: symptoms
+    fields:
+      id: {type: string, pk: true, required: true}
+      form_id: {type: string, fk: forms.id, required: true}
+      name: {type: string, required: true}
+      duration: {type: string}
+      intensity: {type: string}     # 1–10 or mild/moderate/severe
+      recurrence: {type: string}    # e.g., intermittent/daily
+
+  Medication:
+    table: medications
+    fields:
+      id: {type: string, pk: true, required: true}
+      form_id: {type: string, fk: forms.id, required: true}
+      name: {type: string, required: true}
+      strength: {type: string}      # "500 mg"
+      frequency: {type: string}     # "2x/day"
+      duration: {type: string}      # "7 days"
+
+relationships:
+  - {name: form_has_many_symptoms,  type: one_to_many, from: forms.id, to: symptoms.form_id}
+  - {name: form_has_many_meds,      type: one_to_many, from: forms.id, to: medications.form_id}
+  - {name: form_belongs_patient,    type: many_to_one, from: forms.patient_id, to: patients.id}
+  - {name: form_belongs_doctor,     type: many_to_one, from: forms.doctor_id, to: doctors.id}
+
+# -------------------------
+# App Navigation / Routes
+# -------------------------
+routes:
+  - path: "/"
+    name: Main Dashboard
+  - path: "/patient/:patient_id"
+    name: Patient Page
+  - path: "/patient/:patient_id/new-form"
+    name: New Form (with Decision Support)
+  - path: "/form/:form_id/live"
+    name: Live Transcription + Form
+
+# -------------------------
+# Main Dashboard (left sketch)
+# -------------------------
+screens:
+  MainDashboard:
+    layout:
+      sidebar:
+        sections:
+          - title: "Patients"
+            control: list
+            source: patients            # searchable list
+            item_display: "{name}"
+            actions:
+              - {label: "Open", type: link, to: "/patient/{id}"}
+          - title: "Settings"
+            control: link
+            to: "/settings"             # optional placeholder
+      content:
+        grid:
+          source: patients              # patient cards
+          columns: 3
+          item:
+            type: card
+            header: "{name}"
+            subtext: "DOB: {date_of_birth}"
+            primary_action: {type: link, to: "/patient/{id}"}
+        floating_action_button:
+          icon: "+"
+          label: "Add Patient"
+          action: open_modal
+          modal:
+            title: "Create Patient"
+            form:
+              fields:
+                - {name: name, label: "Full name", type: text, required: true}
+                - {name: email, label: "Email", type: email}
+                - {name: date_of_birth, label: "Date of birth", type: date}
+              on_submit: create_patient
+
+# -------------------------
+# Patient Page (right sketch)
+# -------------------------
+  PatientPage:
+    layout:
+      header:
+        avatar: patient_initials
+        title: "{patient.name}"
+      two_column:
+        left:
+          title: "Form Archive"
+          list:
+            source: forms?patient_id={patient.id}
+            item_display: "#{id} • {created_at} • {status}"
+            actions:
+              - {label: "Open", type: link, to: "/form/{id}/live"}
+        right:
+          title: "Personal Data"
+          fields_readonly:
+            - {label: "Name", value: "{patient.name}"}
+            - {label: "Email", value: "{patient.email}"}
+            - {label: "Date of birth", value: "{patient.date_of_birth}"}
+      bottom_right_fab:
+        icon: "+"
+        label: "New Form"
+        to: "/patient/{patient.id}/new-form"
+
+# -------------------------
+# New Form + Decision Support (middle mini-card)
+# -------------------------
+  NewForm:
+    initialize:
+      create_form:
+        inputs:
+          patient_id: "{patient.id}"
+          doctor_id: "{current_doctor.id}"
+        result: {store_as: form}
+    layout:
+      sections:
+        - title: "Decision Support (demo hooks)"
+          items:
+            - {type: hint, text: "When live transcription finds symptoms/meds, they appear pre-filled below."}
+            - {type: toggle, id: ai_autofill, label: "Enable AI Autofill from mic", default: true}
+            - {type: link_button, label: "Start Live Session", to: "/form/{form.id}/live"}
+        - title: "Initial Form (optional prefill)"
+          form:
+            bound_to: form
+            fields:
+              - {name: free_text_notes, label: "Notes", type: textarea}
+            save_action: update_form
+
+# -------------------------
+# Live Transcription + Form (bottom right sketch)
+# -------------------------
+  LiveForm:
+    layout:
+      split:
+        left:
+          title: "Doctor/Patient Transcription"
+          blocks:
+            - {type: audio_control, id: mic, actions: [start, pause, stop]}
+            - {type: transcript_window, source: live.transcript_stream}
+            - {type: status_bar, items: ["Mic: {live.mic_status}", "Model: {settings.asr_model}", "Latency: {live.avg_latency_ms} ms"]}
+        right:
+          title: "Form"
+          tabs:
+            - name: "Symptoms"
+              repeatable_form:
+                source: symptoms?form_id={form.id}
+                item_fields:
+                  - {name: name, label: "Symptom", type: text, required: true}
+                  - {name: duration, label: "Duration", type: text}
+                  - {name: intensity, label: "Intensity", type: text}
+                  - {name: recurrence, label: "Recurrence", type: text}
+                add_button: "Add Symptom"
+                on_add: create_symptom(form_id=form.id)
+                on_change: update_symptom
+            - name: "Medications"
+              repeatable_form:
+                source: medications?form_id={form.id}
+                item_fields:
+                  - {name: name, label: "Medication", type: text, required: true}
+                  - {name: strength, label: "Strength", type: text}
+                  - {name: frequency, label: "Frequency", type: text}
+                  - {name: duration, label: "Duration", type: text}
+                add_button: "Add Medication"
+                on_add: create_medication(form_id=form.id)
+                on_change: update_medication
+            - name: "Summary"
+              view:
+                fields_readonly:
+                  - {label: "Doctor", value: "{doctor.name}"}
+                  - {label: "Patient", value: "{patient.name}"}
+                  - {label: "Created", value: "{form.created_at}"}
+                  - {label: "Status", value: "{form.status}"}
+                actions:
+                  - {label: "Save Draft", action: update_form(status=draft)}
+                  - {label: "Finalize",  action: update_form(status=finalized)}
+    ai_hooks:
+      # Map transcript → structured fields (heuristics or LLM extraction)
+      on_transcript_delta:
+        extract_entities:
+          from: live.text_delta
+          to:
+            symptoms: [{name, duration?, intensity?, recurrence?}]
+            medications: [{name, strength?, frequency?, duration?}]
+        upsert_targets:
+          - entity: Symptom
+            match_keys: [form_id, name]
+          - entity: Medication
+            match_keys: [form_id, name]
+
+# -------------------------
+# App State & Settings
+# -------------------------
+state:
+  current_doctor:
+    source: session
+    defaults: {id: "D001", name: "Dr. Demo"}
+  settings:
+    asr_model: "whisper-small"        # placeholder for demo
+    ai_autofill_enabled: true
+  live:
+    mic_status: "stopped"
+    transcript_stream: []              # rolling list of utterances
+    avg_latency_ms: 0
+
+# -------------------------
+# Mock API (for wiring quickly in Streamlit)
+# -------------------------
+api:
+  create_patient(name, email?, date_of_birth?) -> Patient
+  list_patients(search?) -> [Patient]
+  create_form(patient_id, doctor_id) -> Form
+  update_form(id, **fields) -> Form
+  list_forms(patient_id) -> [Form]
+  create_symptom(form_id, **fields) -> Symptom
+  update_symptom(id, **fields) -> Symptom
+  create_medication(form_id, **fields) -> Medication
+  update_medication(id, **fields) -> Medication
+
+# -------------------------
+# Minimal success criteria (demo)
+# -------------------------
+acceptance:
+  - Can create patient on Dashboard and open Patient Page
+  - Can view Form Archive and start "New Form"
+  - "Start Live Session" shows mic controls and a scrolling transcript
+  - Typing or AI-prefilling adds Symptoms/Medications on the right
+  - Can Save Draft / Finalize a form and see it in the Patient archive
