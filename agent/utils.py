@@ -1,20 +1,14 @@
-from pydantic import BaseModel, ValidationError, cast
+from pydantic import BaseModel, ValidationError
 from instructor import Instructor
 from typing import Type
 
-import agent.errors as errors
-import config as conf
+import agent.config as conf
 
 
-def query_llm(prompt: str, schema: BaseModel) -> BaseModel:
-    resp = LLM_CALL_FALLABLE(schema, prompt)
+async def query_llm(prompt: str, schema: BaseModel) -> BaseModel:
+    resp = await LLM_CALL_FALLABLE(schema, prompt)
 
-    typed_resp = cast(schema, resp)
-
-    if typed_resp.error.error:
-        raise errors.LLMError(typed_resp.error.error_message)
-
-    return typed_resp
+    return resp
 
 
 async def LLM_CALL(
@@ -24,12 +18,12 @@ async def LLM_CALL(
     content: str,
 ) -> BaseModel:
     if model == conf.GEMINI:
-        return client.chat.completions.create(
+        return await client.chat.completions.create(
             messages=[{"role": "user", "content": content}],
             response_model=response_model,
         )
 
-    return client.chat.completions.create(
+    return await client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": content}],
         response_model=response_model,

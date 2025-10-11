@@ -67,11 +67,15 @@ class infoIntent(Enum):
     SYMPS = 2
     ALL = 3
     ERR = 4
+    CONT = 5
 
 
-class infoIntentSchema(BaseModel):
-    intent: (
-        List[Literal["Personally identifiable information", "Medication", "Symptoms"]]
+INTENT_LITERALS = ["Personally identifiable information", "Medication", "Symptoms"]
+
+
+class InfoIntentSchema(BaseModel):
+    intents: (
+        List[Literal[INTENT_LITERALS]]
         | None
     ) = Field(
         default=None,
@@ -81,10 +85,24 @@ class infoIntentSchema(BaseModel):
     )
     error: ErrorMixin
 
+    def to_ii(self, intent: str) -> infoIntent:
+        if intent == INTENT_LITERALS[0]:
+            return infoIntent.PII
+
+        if intent == INTENT_LITERALS[1]:
+            return infoIntent.MEDS
+
+        if intent == INTENT_LITERALS[2]:
+            return infoIntent.SYMS
+
+        return infoIntent.ERR
+
 
 SCHEMAS = {
     infoIntent.PII: PatientPIISchema,
     infoIntent.MEDS: MedicationSchema,
     infoIntent.SYMPS: SymptomSchema,
     infoIntent.ALL: PatientSchema,
+    infoIntent.ERR: ErrorMixin,
+    infoIntent.CONT: InfoIntentSchema,
 }
