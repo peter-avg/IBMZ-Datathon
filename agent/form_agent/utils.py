@@ -19,8 +19,7 @@ class PatientFormBuilder:
         resp = query_llm(prompt, schema)
 
         detected = set(resp.intents or [])
-        return {ii_schema().to_ii(intent):
-                (intent in detected) for intent in INTENT_LITERALS}
+        return {ii_schema().to_ii(intent): (intent in detected) for intent in INTENT_LITERALS}
 
     def get_info(intent: ii, text: str) -> BaseModel:
         prompt = prompts.PROMPTS[intent](text)
@@ -41,6 +40,4 @@ class PatientFormBuilder:
             if cond:
                 info[intent] = self.get_info(intent)
 
-        return schemas.PatientSchema(
-            pii=info[ii.PII], medication=info[ii.MEDS], symptoms=info[ii.SYMPS]
-        )
+        return schemas.PatientSchema(pii=info[ii.PII], medication=info[ii.MEDS], symptoms=info[ii.SYMPS])

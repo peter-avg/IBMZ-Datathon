@@ -1,4 +1,5 @@
 from instructor import from_openai
+
 # import google.generativeai as genai
 from dotenv import load_dotenv
 from openai import OpenAI

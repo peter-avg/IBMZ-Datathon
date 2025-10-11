@@ -1,6 +1,6 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from pydantic import BaseModel, ValidationError
+from unittest.mock import AsyncMock, MagicMock
+from pydantic import BaseModel
 
 import agent.utils as llm
 
@@ -9,13 +9,11 @@ class MockResponse(BaseModel):
     text: str
 
 
-@pytest.mark.asyncio 
+@pytest.mark.asyncio
 async def test_llm_query_function():
     mock_client = MagicMock()
     mock_response = MockResponse(text="Hello OpenAI")
-    mock_client.chat.completions.create = AsyncMock(
-        return_value=mock_response
-    )
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     result = await llm.query_llm("hello", mock_response)
 
@@ -26,9 +24,7 @@ async def test_llm_query_function():
 async def test_llm_call_with_openai_model():
     mock_client = MagicMock()
     mock_response = MockResponse(text="Hello OpenAI")
-    mock_client.chat.completions.create = AsyncMock(
-        return_value=mock_response
-    )
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     result = await llm.LLM_CALL(
         response_model=MockResponse,
@@ -45,9 +41,7 @@ async def test_llm_call_with_openai_model():
 @pytest.mark.asyncio
 async def test_llm_call_fallable_success(monkeypatch):
     mock_client = MagicMock()
-    mock_client.chat.completions.create = AsyncMock(
-        return_value=MockResponse(text="Success")
-    )
+    mock_client.chat.completions.create = AsyncMock(return_value=MockResponse(text="Success"))
 
     mock_conf_client = MagicMock()
     mock_conf_client.model = "gpt-4o-mini"

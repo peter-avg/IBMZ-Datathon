@@ -74,10 +74,7 @@ INTENT_LITERALS = ["Personally identifiable information", "Medication", "Symptom
 
 
 class InfoIntentSchema(BaseModel):
-    intents: (
-        List[Literal[INTENT_LITERALS]]
-        | None
-    ) = Field(
+    intents: List[Literal[INTENT_LITERALS]] | None = Field(
         default=None,
         description="If you recognise that one \\\
                       or more of the literals exist in the text, please \\\

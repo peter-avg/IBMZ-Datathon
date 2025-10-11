@@ -1,4 +1,3 @@
-import pytest
 from dotenv import load_dotenv
 from pathlib import Path
 from os import getenv
@@ -38,4 +37,3 @@ class TestEnvVariables:
     def test_keys_are_not_identical(self):
         """Sanity check that both keys are different"""
         assert self.openai_key != self.gemini_key, "OPENAI_API_KEY and GOOGLE_API_KEY should not be the same"
-
