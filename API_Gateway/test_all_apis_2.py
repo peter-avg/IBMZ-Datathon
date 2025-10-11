@@ -11,7 +11,7 @@ async def run_form_submission_test():
     async with httpx.AsyncClient() as client:
         # --- Step 1: Create a new Doctor to get a valid doctor_id ---
         print("--- Step 1: Creating a new doctor ---")
-        doctor_payload = {"full_name": "Dr. Marie Curie"}
+        doctor_payload = {"full_name": "Dr. Albert Einstein"}
         try:
             response = await client.post(f"{BASE_URL}/doctors/", json=doctor_payload)
             response.raise_for_status()
@@ -24,7 +24,7 @@ async def run_form_submission_test():
 
         # --- Step 2: Create a new Patient to get a valid patient_id ---
         print("\n--- Step 2: Creating a new patient ---")
-        patient_payload = {"full_name": "John Doe"}
+        patient_payload = {"full_name": "Isaac Newton"}
         try:
             response = await client.post(f"{BASE_URL}/patients/", json=patient_payload)
             response.raise_for_status()
