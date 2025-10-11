@@ -27,33 +27,46 @@ class ErrorMixin(BaseModel):
 
 
 class PatientPIISchema(BaseModel):
-    name: str
-    email: EmailStr
-    date_of_birth: date
-    error: ErrorMixin
+    name: str | None
+    email: EmailStr | None
+    date_of_birth: date | None
+    error: ErrorMixin | None
 
 
 class MedicationSchema(BaseModel):
-    name: str
-    strength: int = Field(..., description="Strength in mg.", gt=0)
-    frequency: int = Field(..., gt=0)
-    duration: int = Field(..., gt=0)
-    error: ErrorMixin
+    name: str | None
+    strength: int | None = Field(..., description="Strength in mg.", gt=0)
+    frequency: int | None = Field(..., gt=0)
+    duration: int | None = Field(..., gt=0)
 
 
 class SymptomSchema(BaseModel):
-    name: str = Field(..., description="amoxicillin")
-    duration: int = Field(..., description="Duration in days", gt=0)
-    intensity: Literal[1, 2, 3, 4, 5] = Field(..., description="Symptom intensity")
-    recurrence: bool
-    error: ErrorMixin
+    name: str | None = Field(..., description="amoxicillin")
+    duration: int | None = Field(..., description="Duration in days", gt=0)
+    intensity: Literal[1, 2, 3, 4, 5] | None = Field(..., description="Symptom intensity")
+    recurrence: bool | None
+
+
+class ListMedicationSchema(BaseModel):
+    meds: List[MedicationSchema]
+    error: ErrorMixin | None
+
+
+class ListSymptomSchema(BaseModel):
+    symps: List[SymptomSchema]
+    error: ErrorMixin | None
 
 
 class PatientSchema(BaseModel):
-    pii: PatientPIISchema | None
-    medication: List[MedicationSchema] | None
-    symptoms: List[SymptomSchema] | None
-    error: ErrorMixin
+    pii: PatientPIISchema | None = None
+    medication: ListMedicationSchema | None = None
+    symptoms: ListSymptomSchema | None = None
+    error: ErrorMixin | None = None
+
+
+class RecommendationSchema(BaseModel):
+    recommendation: str | None = None
+    error: ErrorMixin | None = None
 
 
 ######################################################################
@@ -68,19 +81,20 @@ class infoIntent(Enum):
     ALL = 3
     ERR = 4
     CONT = 5
+    REC = 6
 
 
 INTENT_LITERALS = ["Personally identifiable information", "Medication", "Symptoms"]
 
 
 class InfoIntentSchema(BaseModel):
-    intents: List[Literal[INTENT_LITERALS]] | None = Field(
+    intents: List[Literal["Personally identifiable information", "Medication", "Symptoms"]] | None = Field(
         default=None,
         description="If you recognise that one \\\
                       or more of the literals exist in the text, please \\\
                       include them in the base model.",
     )
-    error: ErrorMixin
+    error: ErrorMixin | None
 
     def to_ii(self, intent: str) -> infoIntent:
         if intent == INTENT_LITERALS[0]:
@@ -97,9 +111,10 @@ class InfoIntentSchema(BaseModel):
 
 SCHEMAS = {
     infoIntent.PII: PatientPIISchema,
-    infoIntent.MEDS: MedicationSchema,
-    infoIntent.SYMPS: SymptomSchema,
+    infoIntent.MEDS: ListMedicationSchema,
+    infoIntent.SYMPS: ListSymptomSchema,
     infoIntent.ALL: PatientSchema,
     infoIntent.ERR: ErrorMixin,
     infoIntent.CONT: InfoIntentSchema,
+    infoIntent.REC: RecommendationSchema
 }

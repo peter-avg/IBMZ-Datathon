@@ -14,7 +14,7 @@ dependencies = [
     "pandas==2.2.3",
     "pgvector==0.4.1",
     "protobuf>=6.32.1",
-    "pydantic==2.11.4",
+    "pydantic[email]==2.11.4",
     "pyright>=1.1.406",
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
