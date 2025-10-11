@@ -194,28 +194,6 @@ def render_transcript_window(key: str = "transcript"):
         st.rerun()
 
 
-def render_status_bar():
-    """Render the status bar with mic status, model info, and latency."""
-    st.subheader("📊 Status")
-    
-    live_session = st.session_state.get("live_session", {})
-    ai_settings = st.session_state.get("ai_settings", {})
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        mic_status = live_session.get("mic_status", "stopped")
-        st.metric("Microphone", mic_status.title())
-    
-    with col2:
-        asr_model = ai_settings.get("asr_model", config.ASR_MODEL)
-        st.metric("ASR Model", asr_model)
-    
-    with col3:
-        latency = live_session.get("avg_latency_ms", 0)
-        st.metric("Latency", f"{latency} ms")
-
-
 def render_audio_section(key: str = "audio_section") -> AudioRecorder:
     """
     Render the complete audio section with controls, transcript, and status.
@@ -235,10 +213,5 @@ def render_audio_section(key: str = "audio_section") -> AudioRecorder:
     
     # Transcript window
     render_transcript_window(f"{key}_transcript")
-    
-    st.markdown("---")
-    
-    # Status bar
-    render_status_bar()
     
     return recorder
