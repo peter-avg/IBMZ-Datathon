@@ -1,3 +1,38 @@
+API_Gateway/test_postgres_connection.py
+
+
+# --- Secrets ---
+# Ignore environment variables files. This is critical for security.
+.env
+
+# --- Virtual Environment ---
+# Never commit your virtual environment folder.
+venv/
+.venv/
+env/
+
+# --- Python ---
+# Ignore cache directories and compiled files that Python generates.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- IDE & Editor Config ---
+# Ignore configuration folders from common code editors.
+.vscode/
+.idea/
+
+# --- Operating System ---
+# Ignore system-specific files to keep the repository clean.
+.DS_Store
+Thumbs.db
+
+# --- Testing & Coverage ---
+# Ignore test-related cache and report files.
+.pytest_cache/
+.coverage
+htmlcov/
 # Python
 __pycache__/
 *.py[cod]
