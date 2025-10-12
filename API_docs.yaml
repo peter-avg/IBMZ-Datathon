@@ -1,0 +1,548 @@
+openapi: 3.0.3
+info:
+  title: IBM Datathon API Gateway
+  version: "1.0.0"
+  description: |
+    FastAPI service documented via OpenAPI. Built incrementally from Swagger UI screenshots.
+
+servers:
+  - url: https://ibm-datathon-api-gateway.onrender.com
+    description: Primary server
+
+tags:
+  - name: doctors
+    description: Operations related to doctor records
+  - name: patients
+    description: Operations related to patient records
+  - name: forms
+    description: Operations related to AI-assisted consultation forms and submissions
+
+paths:
+  /doctors/:
+    get:
+      tags: [doctors]
+      summary: Read Doctors
+      operationId: getDoctors
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Doctor" }
+              examples:
+                sampleList:
+                  value:
+                    - full_name: "string"
+                      email: "string"
+                      phone: "string"
+                      doctor_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      created_at: "2025-10-11T20:03:45.108Z"
+    post:
+      tags: [doctors]
+      summary: Create Doctor
+      operationId: createDoctor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorCreate" }
+            examples:
+              sampleCreate:
+                value:
+                  full_name: "string"
+                  email: "string"
+                  phone: "string"
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+              examples:
+                sampleCreated:
+                  value:
+                    full_name: "string"
+                    email: "string"
+                    phone: "string"
+                    doctor_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:05:35.753Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+  /doctors/{doctor_id}:
+    get:
+      tags: [doctors]
+      summary: Read Doctor
+      operationId: getDoctorById
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Doctor UUID.
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+              examples:
+                sampleDoctor:
+                  value:
+                    full_name: "string"
+                    email: "string"
+                    phone: "string"
+                    doctor_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:06:49.856Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+    patch:
+      tags: [doctors]
+      summary: Update Doctor
+      description: Partially update fields of a doctor by UUID (PATCH).
+      operationId: updateDoctor
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Doctor UUID.
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorUpdate" }
+            examples:
+              samplePatch:
+                value:
+                  full_name: "string"
+                  email: "string"
+                  phone: "string"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Doctor" }
+              examples:
+                sampleUpdated:
+                  value:
+                    full_name: "string"
+                    email: "string"
+                    phone: "string"
+                    doctor_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:08:53.573Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+    delete:
+      tags: [doctors]
+      summary: Delete Doctor
+      description: Delete a doctor by UUID. On success, returns **204 No Content**.
+      operationId: deleteDoctor
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Doctor UUID.
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Successful Response (No Content) }
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+  /patients/:
+    get:
+      tags: [patients]
+      summary: Read Patients
+      operationId: getPatients
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Patient" }
+              examples:
+                samplePatients:
+                  value:
+                    - full_name: "string"
+                      dob: "2025-10-11"
+                      sex_at_birth: "string"
+                      phone: "string"
+                      email: "string"
+                      patient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      created_at: "2025-10-11T20:12:34.331Z"
+    post:
+      tags: [patients]
+      summary: Create Patient
+      description: Create a new patient record.
+      operationId: createPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientCreate" }
+            examples:
+              sampleCreatePatient:
+                value:
+                  full_name: "string"
+                  dob: "2025-10-11"
+                  sex_at_birth: "string"
+                  phone: "string"
+                  email: "string"
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+              examples:
+                sampleCreatedPatient:
+                  value:
+                    full_name: "string"
+                    dob: "2025-10-11"
+                    sex_at_birth: "string"
+                    phone: "string"
+                    email: "string"
+                    patient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:12:34.337Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+  /patients/{patient_id}:
+    get:
+      tags: [patients]
+      summary: Read Patient
+      description: Retrieve a single patient by UUID.
+      operationId: getPatientById
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Patient UUID.
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+              examples:
+                samplePatient:
+                  value:
+                    full_name: "string"
+                    dob: "2025-10-11"
+                    sex_at_birth: "string"
+                    phone: "string"
+                    email: "string"
+                    patient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:13:39.931Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+    patch:
+      tags: [patients]
+      summary: Update Patient
+      description: Partially update fields of a patient by UUID (PATCH).
+      operationId: updatePatient
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Patient UUID.
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientUpdate" }
+            examples:
+              samplePatchPatient:
+                value:
+                  full_name: "string"
+                  dob: "2025-10-11"
+                  sex_at_birth: "string"
+                  phone: "string"
+                  email: "string"
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Patient" }
+              examples:
+                sampleUpdatedPatient:
+                  value:
+                    full_name: "string"
+                    dob: "2025-10-11"
+                    sex_at_birth: "string"
+                    phone: "string"
+                    email: "string"
+                    patient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    created_at: "2025-10-11T20:15:05.009Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+    delete:
+      tags: [patients]
+      summary: Delete Patient
+      description: Delete a patient by UUID. On success, returns **204 No Content** with an empty body.
+      operationId: deletePatient
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Patient UUID.
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Successful Response (No Content) }
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+  /forms/:
+    post:
+      tags: [forms]
+      summary: Create Form Submission
+      description: Create a new form submission summarizing the consultation (symptoms, medications, etc.).
+      operationId: createFormSubmission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FormCreate" }
+            examples:
+              sampleCreateForm:
+                value:
+                  patient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  doctor_id:  "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  symptoms:
+                    - name: "string"
+                      duration: 0
+                      intensity: 0
+                  medications:
+                    - name: "string"
+                      strength: 0
+      responses:
+        "201":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Identifier or confirmation message for the created submission.
+              examples:
+                sampleCreatedForm:
+                  value: "string"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HTTPValidationError" }
+              examples:
+                sample422:
+                  value:
+                    detail:
+                      - loc: ["string"]
+                        msg: "string"
+                        type: "string"
+
+components:
+  schemas:
+    DoctorCreate:
+      type: object
+      description: Payload to create a doctor.
+      properties:
+        full_name: { type: string, example: "string" }
+        email:     { type: string, format: email, nullable: true, example: "string" }
+        phone:     { type: string, nullable: true, example: "string" }
+      required: [full_name]
+
+    DoctorUpdate:
+      type: object
+      description: Partial update payload (all fields optional & nullable).
+      properties:
+        full_name: { type: string, nullable: true, example: "string" }
+        email:     { type: string, format: email, nullable: true, example: "string" }
+        phone:     { type: string, nullable: true, example: "string" }
+      additionalProperties: false
+
+    Doctor:
+      type: object
+      description: Doctor record.
+      properties:
+        full_name:  { type: string, example: "string" }
+        email:      { type: string, format: email, nullable: true, example: "string" }
+        phone:      { type: string, nullable: true, example: "string" }
+        doctor_id:  { type: string, format: uuid, example: "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+        created_at: { type: string, format: date-time, example: "2025-10-11T20:03:45.108Z" }
+      required: [full_name, doctor_id, created_at]
+
+    PatientCreate:
+      type: object
+      description: Payload to create a patient.
+      properties:
+        full_name:    { type: string, example: "string" }
+        dob:          { type: string, format: date, nullable: true, example: "2025-10-11" }
+        sex_at_birth: { type: string, nullable: true, example: "string" }
+        phone:        { type: string, nullable: true, example: "string" }
+        email:        { type: string, format: email, nullable: true, example: "string" }
+      required: [full_name]
+
+    PatientUpdate:
+      type: object
+      description: Partial update payload for a patient (all fields optional & nullable).
+      properties:
+        full_name:    { type: string, nullable: true, example: "string" }
+        dob:          { type: string, format: date, nullable: true, example: "2025-10-11" }
+        sex_at_birth: { type: string, nullable: true, example: "string" }
+        phone:        { type: string, nullable: true, example: "string" }
+        email:        { type: string, format: email, nullable: true, example: "string" }
+      additionalProperties: false
+
+    Patient:
+      type: object
+      description: Patient record.
+      properties:
+        full_name:     { type: string, example: "string" }
+        dob:           { type: string, format: date, nullable: true, example: "2025-10-11" }
+        sex_at_birth:  { type: string, nullable: true, example: "string" }
+        phone:         { type: string, nullable: true, example: "string" }
+        email:         { type: string, format: email, nullable: true, example: "string" }
+        patient_id:    { type: string, format: uuid, example: "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+        created_at:    { type: string, format: date-time, example: "2025-10-11T20:12:34.331Z" }
+      required: [full_name, patient_id, created_at]
+
+    # --- Forms schemas (from screenshot: FormCreate, MedicationCreate; symptoms is an array<object>) ---
+    MedicationCreate:
+      type: object
+      properties:
+        name:     { type: string, example: "ibuprofen" }
+        strength: { type: integer, nullable: true, example: 200 }
+      required: [name]
+
+    SymptomCreate:
+      type: object
+      properties:
+        name:      { type: string, example: "headache" }
+        duration:  { type: integer, nullable: true, example: 3 }
+        intensity: { type: integer, nullable: true, example: 7 }
+      required: [name]
+
+    FormCreate:
+      type: object
+      description: Payload to create a consultation form submission.
+      properties:
+        patient_id:  { type: string, format: uuid, example: "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+        doctor_id:   { type: string, format: uuid, nullable: true, example: "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+        symptoms:
+          type: array
+          items: { $ref: "#/components/schemas/SymptomCreate" }
+        medications:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/MedicationCreate" }
+      required: [patient_id, symptoms]
+
+    # FastAPI's default validation error models
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items: { $ref: "#/components/schemas/ValidationError" }
+      description: Validation error response (422).
+    ValidationError:
+      type: object
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf: [{type: string}, {type: integer}]
+        msg:  { type: string }
+        type: { type: string }
+      required: [loc, msg, type]
