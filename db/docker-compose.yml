@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: hp_postgres
+    environment:
+      POSTGRES_USER: hp_app
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: hp_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/hp.sql:/docker-entrypoint-initdb.d/hp.sql
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
