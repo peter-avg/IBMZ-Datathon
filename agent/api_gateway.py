@@ -1,0 +1,19 @@
+from fastapi import FastAPI, Body
+from agent.form_agent.schemas import PatientSchema, RecommendationSchema
+from agent.form_agent.utils import PatientFormBuilder
+
+app = FastAPI()
+
+builder = PatientFormBuilder()
+
+
+@app.post("/get_form/", response_model=PatientSchema)
+async def get_form(text: str = Body(...)):
+    form = await builder.get_patient_form(text)
+    return form
+
+
+@app.post("/get_recommendation/", response_model=RecommendationSchema) 
+async def get_recommendation(text: str = Body(...)):
+    recommendation = await builder.get_patient_recommendation(text)
+    return recommendation
