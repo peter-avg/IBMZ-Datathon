@@ -1,1 +1,1 @@
-# IBM-Z-Datathon
+# IBMZ-Datathon
